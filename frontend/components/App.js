@@ -1,18 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import { NavLink, Routes, Route, useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { NavLink, Routes, Route, useNavigate, } from 'react-router-dom'
 import Articles from './Articles'
 import LoginForm from './LoginForm'
 import Message from './Message'
 import ArticleForm from './ArticleForm'
 import Spinner from './Spinner'
-import axios from 'axios'
-import  axiosWithAuth from '../axios'
-
-
+import axios from "axios"
+import axiosWithAuth from "../axios"
 
 
 const articlesUrl = 'http://localhost:9000/api/articles'
 const loginUrl = 'http://localhost:9000/api/login'
+
 
 export default function App() {
   // ✨ MVP can be achieved with these states
@@ -21,20 +20,11 @@ export default function App() {
   const [currentArticleId, setCurrentArticleId] = useState()
   const [spinnerOn, setSpinnerOn] = useState(false)
 
-  useEffect(()=> {
-    setCurrentArticleId(articles.find(art => art.article_id === currentArticleId))
-  }, [currentArticleId])
-
-  
-
   // ✨ Research `useNavigate` in React Router v.6
   const navigate = useNavigate()
-  const redirectToLogin = () => navigate('/')
-  const redirectToArticles = () =>  navigate('/articles')
-
-  const resetArticles = () => {
-    axiosWithAuth().get("articles")
-    .then(res => setArticles(res.data.articles))
+  const redirectToLogin = () => { navigate("/")
+  }
+  const redirectToArticles = () => { navigate("/articles")
   }
 
   const logout = () => {
@@ -70,23 +60,29 @@ export default function App() {
     // to the Articles screen. Don't forget to turn off the spinner!
   }
 
-  const getArticles = () => {
-    setMessage("");
-    setSpinnerOn(true);
+  const getArticles = (msg) => {
+    setMessage("")
+    setSpinnerOn(true)
     axiosWithAuth()
     .get("/articles")
     .then(res => {
-      setArticles(res.data.articles)
+        if (msg === undefined) {
+          setMessage(res.data.message)
+        } else {
+          setMessage(msg)
+        }
+        setArticles(res.data.articles)
+      })
+      .catch(err => {
+        setMessage(err.message)
+        if (err.response.status.toString() == "401") {
+          redirectToLogin()
+        }
+      })
       setSpinnerOn(false)
-      setMessage(res.data.message)
-    })
-    .catch(err => {
-      if (err.status === 401) {
-        redirectToLogin()
-      }
-      setSpinnerOn(false)
-    })
-    // ✨ implement
+
+  }
+  // ✨ implement
     // We should flush the message state, turn on the spinner
     // and launch an authenticated request to the proper endpoint.
     // On success, we should set the articles in their proper state and
@@ -94,61 +90,72 @@ export default function App() {
     // If something goes wrong, check the status of the response:
     // if it's a 401 the token might have gone bad, and we should redirect to login.
     // Don't forget to turn off the spinner!
-  }
 
-   const postArticle = article => {
+
+
+  const postArticle = article => {
     setMessage("")
+    setSpinnerOn(true)
     axiosWithAuth()
     .post(articlesUrl, article)
-    .then((res) => {
-      const newArt = [...articles]
-      newArt.push({...article, article_id: Date.now()})
-      setArticles(newArt)
-      setMessage(res.data.message)
-    })
-      .catch(err => console.log(err))
-    // ✨ implement
+      .then(res => {
+        setMessage(res.data.message)
+        setSpinnerOn(false)
+        getArticles(res.data.message)
+      })
+      .catch(err => {
+        setMessage(err.response.message)
+        setSpinnerOn(false)
+      })
+      // ✨ implement
     // The flow is very similar to the `getArticles` function.
     // You'll know what to do! Use log statements or breakpoints
     // to inspect the response from the server.
   }
 
   const updateArticle = ({ article_id, article }) => {
-    axiosWithAuth().put(`articlesUrl/${article_id}`,  article)
-    .then(res => {
-        console.log("HERE",res)
-      setMessage(res.data.message)
-      setArticles(articles.map(art => { if(art.articles_id === res.data.id)
-        return res.data.article 
-       }))
-      // resetArticles()
-    })
-    .catch(err => console.log(err));
-    // ✨ implement
-    // You got this!
+    setMessage("")
+    setSpinnerOn(true)
+    
+    axiosWithAuth()
+      .put(`http://localhost:9000/api/articles/${article_id}`, article) 
+      .then(res => {
+        //   console.log("Update Article SUCCESS: ", res)
+        setMessage(res.data.message)
+        setSpinnerOn(false)
+        getArticles(res.data.message)
+      })
+      .catch(err => {
+        setMessage(err.response.message)
+        setSpinnerOn(false)
+      })
+       // ✨ implement
+    // You got this
   }
 
   const deleteArticle = article_id => {
     // ✨ implement
-    setMessage('');
-    setSpinnerOn(true);
+    setMessage("")
+    setSpinnerOn(true)
     axiosWithAuth()
-      .delete(`/articles/${article_id}`)
-      .then(res => {
+    .delete(`http://localhost:9000/api/articles/${article_id}`) 
+    .then(res => {
         setMessage(res.data.message)
-        setArticles(articles.filter((update) => update.article_id !== article_id));
-        setSpinnerOn(false);
+        setSpinnerOn(false)
+        getArticles(res.data.message)
+
       })
       .catch(err => {
-        console.log(err)
+        setMessage(err.response.message)
+        setSpinnerOn(false)
       })
-    // ✨ implement
+
   }
 
   return (
     // ✨ fix the JSX: `Spinner`, `Message`, `LoginForm`, `ArticleForm` and `Articles` expect props ❗
     <>
-      <Spinner on={spinnerOn}/>
+      <Spinner on={spinnerOn} />
       <Message message={message} />
       <button id="logout" onClick={logout}>Logout from app</button>
       <div id="wrapper" style={{ opacity: spinnerOn ? "0.25" : "1" }}> {/* <-- do not change this line */}
@@ -157,14 +164,20 @@ export default function App() {
           <NavLink id="loginScreen" to="/">Login</NavLink>
           <NavLink id="articlesScreen" to="/articles">Articles</NavLink>
         </nav>
+
         <Routes>
-          <Route path="/" element={<LoginForm  login={login}/>} />
-          <Route path="/articles" element={
-            <>
-              <ArticleForm currentArticle={currentArticleId} postArticle={postArticle} updateArticle={updateArticle} setCurrentArticleId={setCurrentArticleId}/>
-              <Articles articles={articles} getArticles={getArticles} setCurrentArticleId={setCurrentArticleId} deleteArticle={deleteArticle}/>
-            </>
-          } />
+          <Route path="/" element={<LoginForm login={login} />} />
+          <Route exact path="articles" element={
+              <>
+
+            <ArticleForm
+                  navigate={redirectToLogin} currentArticle={currentArticleId} postArticle={postArticle} updateArticle={updateArticle} setCurrentArticleId={setCurrentArticleId}
+                />
+            <Articles
+                  navigate={redirectToLogin} getArticles={getArticles} articles={articles} currentArticleId={currentArticleId} deleteArticle={deleteArticle} setCurrentArticleId={setCurrentArticleId}
+                />
+              </>
+            } />
         </Routes>
         <footer>Bloom Institute of Technology 2022</footer>
       </div>

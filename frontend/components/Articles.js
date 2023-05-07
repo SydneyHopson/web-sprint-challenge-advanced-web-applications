@@ -1,34 +1,33 @@
 import React, { useEffect } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import PT from 'prop-types'
 
 export default function Articles(props) {
   // ✨ where are my props? Destructure them here
-const { articles, getArticles, setCurrentArticleId, deleteArticle } = props
-const navigate = useNavigate()
+  const { getArticles, articles, navigate, setCurrentArticleId, deleteArticle } = props
   // ✨ implement conditional logic: if no token exists
   // we should render a Navigate to login screen (React Router v.6)
-  if(!localStorage.getItem("token")) {
-    navigate("/")
-  }
-
-  useEffect(() => {
-    // ✨ grab the articles here, on first render only
-    getArticles()
+  
+    useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      navigate() 
+    } else {
+      getArticles()
+    }
   }, [])
 
-
-
- 
-  const editArticle = (article_id) => {
-    setCurrentArticleId(article_id)
-   
+  const onDelete = (e) => {
+    deleteArticle(e.target.id)
   }
 
-
+  const editArticle = (e) => {
     
-
-    
+    for (let i = 0; i < articles.length; i++) {
+      if (articles[i].article_id == e.target.id) {
+        setCurrentArticleId(articles[i])
+        }
+    }
+  }
 
   return (
     // ✨ fix the JSX: replace `Function.prototype` with actual functions
@@ -36,6 +35,7 @@ const navigate = useNavigate()
     <div className="articles">
       <h2>Articles</h2>
       {
+
         !articles.length
           ? 'No articles yet'
           : articles.map(art => {
@@ -47,13 +47,11 @@ const navigate = useNavigate()
                   <p>Topic: {art.topic}</p>
                 </div>
                 <div>
-                  <button disabled={false}   onClick={() => editArticle(art.article_id)} >Edit</button>
-                  <button disabled={false}   onClick={() => deleteArticle(art.article_id)}>Delete</button>
+                  <button id={art.article_id} onClick={editArticle}>Edit</button>
+                  <button id={art.article_id} onClick={onDelete}>Delete</button>
                 </div>
               </div>
-            )
-          })
-      }
+            )})}
     </div>
   )
 }

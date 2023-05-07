@@ -5,14 +5,21 @@ import PT from 'prop-types'
 const initialFormValues = { title: '', text: '', topic: '' }
 
 export default function ArticleForm(props) {
-  const { currentArticle, postArticle, updateArticle, setCurrentArticleId } = props 
+
   const [values, setValues] = useState(initialFormValues)
-  
-  // ✨ where are my props? Destructure them here
+
+ const { navigate, postArticle, currentArticle, updateArticle, setCurrentArticleId } = props
 
   useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      navigate()
+    };
     if (currentArticle) {
-      setValues(currentArticle)
+      setValues({
+        title: currentArticle.title,
+        text: currentArticle.text,
+        topic: currentArticle.topic,
+      })
     }
   }, [currentArticle])
 
@@ -20,63 +27,74 @@ export default function ArticleForm(props) {
     // Every time the `currentArticle` prop changes, we should check it for truthiness:
     // if it's truthy, we should set its title, text and topic into the corresponding
     // values of the form. If it's not, we should reset the form back to initial values.
-  
-
-  const onChange = evt => {
-    const { id, value } = evt.target
-    setValues({ ...values, [id]: value })
-  }
-
-  const onSubmit = evt => {
-    evt.preventDefault()
-    setValues(initialFormValues)
-    if (currentArticle) {
-      updateArticle({article_id: currentArticle, article: values });
-      setCurrentArticleId(null)
-    }else {
-      postArticle(values);
-    }
-    setValues(initialFormValues);
-
     
-    // ✨ implement
-    // We must submit a new post or update an existing one,
-    // depending on the truthyness of the `currentArticle` prop.
-  }
 
-  const isDisabled = () => {
-    if(values.title && values.text && values.topic) {
-      return false 
-    }else {
-      return true
-    }
-    // ✨ implement
-    // Make sure the inputs have some values
-  }
-  const cancelEdit = () => {
+
+  const onEdit = (evt) => {
+    setValues({
+      title: "",
+      text: "",
+      topic: "",
+    })
     setCurrentArticleId()
   }
+    const onChange = evt => {
+    const { id, value } = evt.target
+     setValues({ ...values, [id]: value })
+  }
+  
+    const onSubmit = evt => {
+      evt.preventDefault()
+      if (currentArticle) {
+        updateArticle({
+          article_id: currentArticle.article_id,
+          article: { title: values.title, text: values.text, topic: values.topic },
+        })
+      } else {
+        postArticle(values)
+      }
+      setValues({ title: "", text: "", topic: "" })
+      setCurrentArticleId()
+    }
+    // ✨ implement
+    // We must submit a new post or update an existing one,
+    // depending on the truthfulness of the `currentArticle` prop.
+    
+    const isDisabled = () => {
+    if (values.title != "" && values.title != undefined) {
+      if (values.text != "" && values.text != undefined) {
+        if (values.topic != "" && values.topic != undefined) {
+          return false
+        }
+      }
+    }
+  return true
+     // ✨ implement
+    // Make sure the inputs have some values
+  }
+
+
 
   return (
     // ✨ fix the JSX: make the heading display either "Edit" or "Create"
     // and replace Function.prototype with the correct function
     <form id="form" onSubmit={onSubmit}>
-      <h2>{currentArticle ? "Edit" : "Create" } Article</h2>
+      <h2>Create Article</h2>
       <input
         maxLength={50}
         onChange={onChange}
-        value={values.title ||"" }
+        value={values.title}
         placeholder="Enter title"
         id="title"
       />
       <textarea
         maxLength={200}
         onChange={onChange}
-        value={values.text ||""}
+        value={values.text}
         placeholder="Enter text"
         id="text"
       />
-      <select onChange={onChange} id="topic" value={values.topic ||""}>
+      <select onChange={onChange} id="topic" value={values.topic}>
         <option value="">-- Select topic --</option>
         <option value="JavaScript">JavaScript</option>
         <option value="React">React</option>
@@ -84,7 +102,12 @@ export default function ArticleForm(props) {
       </select>
       <div className="button-group">
         <button disabled={isDisabled()} id="submitArticle">Submit</button>
-        <button onClick={cancelEdit}>Cancel edit</button>
+
+        {
+          currentArticle ?
+            <button onClick={onEdit}>Cancel edit</button> :
+            ""
+        }
       </div>
     </form>
   )
